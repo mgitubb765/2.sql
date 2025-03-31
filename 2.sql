@@ -25,6 +25,37 @@ INSERT INTO students (first_name, last_name, emails, addresses, classes) VALUES
 ('Ethan', 'Harris', 'ethan.harris@example.com|ethanh@gmail.com', '963 Maple St, Philadelphia, PA, 19101|147 Spruce St, Philadelphia, PA, 19102', 'HIST301, American History|CHEM301, Biochemistry'),
 ('Ava', 'Martin', 'ava.martin@example.com|avam@gmail.com', '258 Birch St, Phoenix, AZ, 85001|369 Cedar St, Phoenix, AZ, 85002','HIST301, American History');
 
+ALTER TABLE students RENAME TO students_old;
+
+CREATE TABLE students (
+    id SERIAL PRIMARY KEY, 
+    first_name TEXT, 
+    last_name TEXT
+);
+
+CREATE TABLE student_emails (
+    id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(id) ON DELETE CASCADE,
+    email TEXT NOT NULL
+);
+
+CREATE TABLE student_addresses (
+    id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(id) ON DELETE CASCADE,
+    street TEXT NOT NULL,
+    city TEXT NOT NULL,
+    state TEXT NOT NULL,
+    zip TEXT NOT NULL
+);
+
+CREATE TABLE student_classes (
+    id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(id) ON DELETE CASCADE,
+    class_code TEXT NOT NULL,
+    class_name TEXT NOT NULL
+);
+
+
 INSERT INTO students (first_name, last_name)
 SELECT first_name, last_name
 FROM students_old;
@@ -52,3 +83,59 @@ FROM students_old se
 JOIN students s ON s.first_name = se.first_name AND s.last_name = se.last_name,
      unnest(string_to_array(se.classes, '|')) AS cl(class_info);
 
+ALTER TABLE students RENAME TO students_old;
+
+CREATE TABLE students (
+    id SERIAL PRIMARY KEY, 
+    first_name TEXT, 
+    last_name TEXT
+);
+
+CREATE TABLE student_emails (
+    id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(id) ON DELETE CASCADE,
+    email TEXT NOT NULL
+);
+
+CREATE TABLE student_addresses (
+    id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(id) ON DELETE CASCADE,
+    street TEXT NOT NULL,
+    city TEXT NOT NULL,
+    state TEXT NOT NULL,
+    zip TEXT NOT NULL
+);
+
+CREATE TABLE student_classes (
+    id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(id) ON DELETE CASCADE,
+    class_code TEXT NOT NULL,
+    class_name TEXT NOT NULL
+);
+
+INSERT INTO students (first_name, last_name)
+SELECT first_name, last_name
+FROM students_old;
+
+INSERT INTO student_emails (student_id, email)
+SELECT s.id, unnest(string_to_array(se.emails, '|'))
+FROM students_old se
+JOIN students s ON s.first_name = se.first_name AND s.last_name = se.last_name;
+
+INSERT INTO student_addresses (student_id, street, city, state, zip)
+SELECT s.id, 
+       split_part(ad.address, ',', 1) AS street,
+       split_part(ad.address, ',', 2) AS city,
+       split_part(ad.address, ',', 3) AS state,
+       split_part(ad.address, ',', 4) AS zip
+FROM students_old se
+JOIN students s ON s.first_name = se.first_name AND s.last_name = se.last_name,
+     unnest(string_to_array(se.addresses, '|')) AS ad(address);
+
+INSERT INTO student_classes (student_id, class_code, class_name)
+SELECT s.id, 
+       split_part(cl.class_info, ',', 1) AS class_code,
+       split_part(cl.class_info, ',', 2) AS class_name
+FROM students_old se
+JOIN students s ON s.first_name = se.first_name AND s.last_name = se.last_name,
+     unnest(string_to_array(se.classes, '|')) AS cl(class_info);
